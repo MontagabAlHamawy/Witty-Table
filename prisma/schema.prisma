@@ -1,0 +1,158 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// datasource db {
+//   provider = "postgresql"
+//   url      = env("DATABASE_URL")
+// }
+datasource db {
+  provider = "postgresql"
+  url = env("POSTGRES_PRISMA_URL") // uses connection pooling
+  directUrl = env("POSTGRES_URL_NON_POOLING") // uses a direct connection
+}
+
+model Customer {
+  CustomerID  Int      @id @default(autoincrement())
+  Name        String
+  PhoneNumber String
+  Address     String
+  IsRegular   Boolean
+  Orders      Order[]
+  Reviews     Review[]
+}
+
+model Employee {
+  Username      String         @id
+  Name          String
+  Email         String         @unique
+  Role          String
+  Password      String
+  PhoneNumber   String
+  CreatedAt     DateTime       @default(now())
+  Branches      Branch[]       @relation("EmployeeBranches")
+  Logs          Log[]
+  EmployeeRoles EmployeeRole[]
+}
+
+model Branch {
+  BranchID    Int        @id @default(autoincrement())
+  BranchName  String
+  Address     String
+  PhoneNumber String
+  CreatedAt   DateTime   @default(now())
+  Orders      Order[]
+  Employees   Employee[] @relation("EmployeeBranches")
+}
+
+model Menu {
+  MenuID          Int           @id @default(autoincrement())
+  Name            String
+  Description     String
+  CategoryID      Int
+  Price           Float
+  PreparationTime Int
+  CreatedAt       DateTime      @default(now())
+  OrderDetails    OrderDetail[]
+  Reviews         Review[]
+
+  Category Category @relation(fields: [CategoryID], references: [CategoryID])
+}
+
+model Category {
+  CategoryID       Int        @id @default(autoincrement())
+  Name             String
+  ParentCategoryID Int?
+  Menus            Menu[]
+  SubCategories    Category[] @relation("CategorySubCategories")
+  ParentCategory   Category?  @relation("CategorySubCategories", fields: [ParentCategoryID], references: [CategoryID])
+}
+
+model Ingredient {
+  IngredientID    Int    @id @default(autoincrement())
+  Name            String
+  QuantityInStock Int
+  Unit            String
+  ReorderLevel    Int
+}
+
+model Order {
+  OrderID             Int           @id @default(autoincrement())
+  CustomerID          Int
+  BranchID            Int
+  OrderTime           DateTime
+  DeliveryTime        DateTime
+  TotalAmount         Float
+  Status              String
+  PaymentStatus       String
+  TableNumber         Int?
+  SpecialInstructions String
+  OrderDetails        OrderDetail[]
+  Payments            Payment[]
+
+  Customer Customer @relation(fields: [CustomerID], references: [CustomerID])
+  Branch   Branch   @relation(fields: [BranchID], references: [BranchID])
+}
+
+model OrderDetail {
+  OrderDetailID  Int    @id @default(autoincrement())
+  OrderID        Int
+  MenuID         Int
+  Quantity       Int
+  SpecialRequest String
+
+  Order Order @relation(fields: [OrderID], references: [OrderID])
+  Menu  Menu  @relation(fields: [MenuID], references: [MenuID])
+}
+
+model Payment {
+  PaymentID     Int      @id @default(autoincrement())
+  OrderID       Int
+  Amount        Float
+  PaymentMethod String
+  PaymentDate   DateTime
+
+  Order Order @relation(fields: [OrderID], references: [OrderID])
+}
+
+model Review {
+  ReviewID   Int    @id @default(autoincrement())
+  CustomerID Int
+  MenuID     Int
+  Rating     Int
+  Comment    String
+
+  Customer Customer @relation(fields: [CustomerID], references: [CustomerID])
+  Menu     Menu     @relation(fields: [MenuID], references: [MenuID])
+}
+
+model Role {
+  RoleID        Int            @id @default(autoincrement())
+  RoleName      String
+  Permissions   String
+  EmployeeRoles EmployeeRole[]
+}
+
+model EmployeeRole {
+  EmployeeRoleID Int    @id @default(autoincrement())
+  Username       String
+  RoleID         Int
+
+  Employee Employee @relation(fields: [Username], references: [Username])
+  Role     Role     @relation(fields: [RoleID], references: [RoleID])
+}
+
+model Log {
+  LogID     Int      @id @default(autoincrement())
+  Username  String
+  Action    String
+  Timestamp DateTime
+
+  Employee Employee @relation(fields: [Username], references: [Username])
+}
